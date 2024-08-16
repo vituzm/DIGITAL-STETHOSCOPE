@@ -32,12 +32,8 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define N_AMOSTRAS 1000 // Amostras DMA buffer
+#define N_AMOSTRAS 1024 // Amostras DMA buffer
 #define MSG_SIZE 200
-
-#define SAMPLE_RATE 3 // Sample rate
-#define NUM_CHANNELS 1
-#define BITS_PER_SAMPLE 16 // 16 bits por amostra
 
 /* USER CODE END PD */
 
@@ -58,11 +54,6 @@ DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 volatile uint16_t medidas[N_AMOSTRAS];
-
-uint32_t tamanho_arquivo = 1; // tamanho inicial
-const char nome_arquivo[] = "aquivodeaudioteste.wav";
-FILE *arquivo;
-
 uint16_t conta = 0;
 
 uint16_t msg[MSG_SIZE]; // TAMANHO DA MSG
@@ -77,31 +68,13 @@ static void MX_TIM3_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
-typedef struct {
-    char chunkID[4];       // "RIFF"
-    uint32_t chunkSize;    // Tamanho do arquivo - 8 bytes
-    char format[4];        // "WAVE"
-    char subChunk1ID[4];   // "fmt "
-    uint32_t subChunk1Size;// 16 para PCM
-    uint16_t audioFormat;  // 1 para PCM (sem compressão)
-    uint16_t numChannels;  // 1 para mono, 2 para estéreo
-    uint32_t sampleRate;   // Ex: 36200 para 36,2 kHz
-    uint32_t byteRate;     // sampleRate * numChannels * bitsPerSample / 8
-    uint16_t blockAlign;   // numChannels * bitsPerSample / 8
-    uint16_t bitsPerSample;// 16, 24, 32, etc.
-    char subChunk2ID[4];   // "data"
-    uint32_t subChunk2Size;// Tamanho dos dados de áudio
-} WAVHeader;
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 // --------- Funções prototipos ----------------- //
-WAVHeader createWAVHeader(uint32_t dataSize);
-void SaveHeaderToWAV(uint32_t size);
-void WriteDataToWAV(uint16_t* buffer, uint32_t size);
-void update_wav_header();
+
 // --------- Funções prototipos ----------------- //
 /* USER CODE END 0 */
 
@@ -113,7 +86,6 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-	//SaveHeaderToWAV(tamanho_arquivo);
 
   /* USER CODE END 1 */
 
@@ -149,7 +121,6 @@ int main(void)
   HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
 
 
-  //createWAVHeader(N_AMOSTRAS);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -157,7 +128,7 @@ int main(void)
   while (1)
   {
 	  if(__HAL_TIM_GET_FLAG(&htim10, TIM_FLAG_UPDATE)){
-		  if(conta == 20){
+		  if(conta == 40){
 
 		  }else{
 			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
@@ -377,7 +348,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 921600;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -463,113 +434,8 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
-/**
-  * @brief Criação do cabeçalho do arquivo WAV
-  * @param Tamanho total dos dados
-  * @retval WAVHeader
-  */
-WAVHeader createWAVHeader(uint32_t dataSize){
-	WAVHeader header;
-
-	memcpy(header.chunkID, "RIFF", 4);
-	header.chunkID[4] = '\0';  // Adiciona o caractere nulo
-	header.chunkSize = 36 + dataSize; // Tamanho total do arquivo
-	memcpy(header.format, "WAVE", 4);
-	header.format[4] = '\0';
-	memcpy(header.subChunk1ID, "fmt ", 4);
-	header.subChunk1ID[4] = '\0';
-	header.subChunk1Size = 16;
-	header.audioFormat = 1;  // PCM
-	header.numChannels = NUM_CHANNELS;
-	header.sampleRate = SAMPLE_RATE;
-	header.byteRate = SAMPLE_RATE * NUM_CHANNELS * BITS_PER_SAMPLE / 8;
-	header.blockAlign = NUM_CHANNELS * BITS_PER_SAMPLE / 8;
-	header.bitsPerSample = BITS_PER_SAMPLE;
-	memcpy(header.subChunk2ID, "data", 4);
-	header.subChunk2ID[4] = '\0';
-	header.subChunk2Size = dataSize;
-
-	return header;
-}
-
-/**
-  * @brief Transferencia de dados para o arquivo WAV
-  * @param Buffer que contem os dados / Tamanho total dos dados
-  * @retval None
-  */
-void SaveHeaderToWAV(uint32_t size) {
-    arquivo = fopen("C:\\Users\\Usuario\\aquivodeaudioteste.wav", "wb");
-    if (arquivo == NULL) {
-        snprintf(msg, MSG_SIZE, "Erro ao abrir o arquivo\n");
-    	HAL_UART_Transmit_DMA(&huart2, msg, strlen(msg));
-        return;
-    }
-
-    // Cria o cabeçalho WAV
-    WAVHeader header = createWAVHeader(size * sizeof(uint16_t));
-    fwrite(&header, sizeof(WAVHeader), 1, arquivo);
-}
-
-void WriteDataToWAV(uint16_t* buffer, uint32_t size){
-
-	// Escreve os dados do buffer no arquivo
-	fwrite(buffer, sizeof(uint16_t), size, arquivo);
-	update_wav_header();
-}
-
-void update_wav_header() {
-    fseek(arquivo, 0, SEEK_END);
-    long file_size = ftell(arquivo);
-    fseek(arquivo, 4, SEEK_SET);
-
-    // Atualiza o tamanho do chunk
-    uint32_t chunk_size = file_size - 8;
-    fwrite(&chunk_size, 4, 1, arquivo);
-
-    fseek(arquivo, 40, SEEK_SET);
-
-    // Atualiza o tamanho dos dados
-    uint32_t data_size = file_size - 44;
-    fwrite(&data_size, 4, 1, arquivo);
-}
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
-	/*
-	//SaveToWAV(medidas, N_AMOSTRAS);
-	int media = 0;
-	uint32_t bit_32_val[4];
-
-	if(conta < 500){
-		for(int i = 0; i < N_AMOSTRAS; i++){
-		bit_32_val[i] = (medidas[i] * 65535) / 4095; // transformando em 16bits
-		media = media + bit_32_val[i];
-		//WriteDataToWAV(medidas, N_AMOSTRAS);
-		}
-		media = media/N_AMOSTRAS;
-		//snprintf(msg, MSG_SIZE, "media: %u = %u + %u + %u + %u : 1 %u\r\n", media, bit_32_val[0], bit_32_val[1], bit_32_val[2], bit_32_val[3], medidas[0]);
-		if(conta == 0){
-			snprintf(msg, MSG_SIZE, "%4lu\r\n", conta);
-
-		}else{
-			snprintf(msg, MSG_SIZE, "%i\r\n", conta);
-
-		}
-		HAL_UART_Transmit_DMA(&huart2, msg, strlen(msg));
-		conta = conta + 1;
-	}
-
-
-
-
-	//}else if (media == 20000){ //encerra a geraçã ode valores
-	//fclose(arquivo);
-	//	strncpy(msg, "START", MSG_SIZE);
-    //HAL_UART_Transmit_DMA(&huart2, msg, strlen(msg));
-	//	HAL_UART_Transmit_DMA(&huart2, msg, strlen(msg));
-	//}
-*=
-	HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
-*/
 	HAL_UART_Transmit_DMA(&huart2,medidas, N_AMOSTRAS*2);
 
 }
@@ -577,7 +443,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(conta >= 20){
+	if(conta >= 10){
 
 	}else {
 		HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);

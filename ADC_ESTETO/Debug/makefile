@@ -60,8 +60,8 @@ all: main-build
 main-build: ADC_ESTETO.elf secondary-outputs
 
 # Tool invocations
-ADC_ESTETO.elf ADC_ESTETO.map: $(OBJS) $(USER_OBJS) E:\TCC\ADC_ESTETO\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "ADC_ESTETO.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\TCC\ADC_ESTETO\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ADC_ESTETO.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+ADC_ESTETO.elf ADC_ESTETO.map: $(OBJS) $(USER_OBJS) E:\Projetos\ ST\DIGITAL-STETHOSCOPE\ADC_ESTETO\STM32F446RETX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "ADC_ESTETO.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"E:\Projetos ST\DIGITAL-STETHOSCOPE\ADC_ESTETO\STM32F446RETX_FLASH.ld" --specs=nosys.specs -Wl,-Map="ADC_ESTETO.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
