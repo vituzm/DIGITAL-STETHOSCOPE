@@ -7,14 +7,14 @@ import wave
 import serial
 
 # Configurações da serial
-SERIAL_PORT = 'COM9'  # Porta serial
+SERIAL_PORT = 'COM6'  # Porta serial
 BAUD_RATE = 921200    # Configuração da taxa de transmissão da serial
 CHUNK = 2             # Tamanho do buffer agora é 2 bytes por vez (16 bits = 2 bytes)
 FORMAT = 16           # Usando 16 bits por amostra (não precisa ser mudado, só é informativo)
 CHANNELS = 1          # Canal mono
 SAMPLE_RATE = 19940   # Taxa de amostragem em Hz
 RECORD_SECONDS = 2    # Tempo de gravação
-WAVE_NAME = "AudioEstetoscópio.wav"  # Nome do arquivo de saída
+WAVE_NAME = "C:\\Users\\Vitor\\Downloads\\AudioEstetoscópio.wav"  # Nome do arquivo de saída
 
 # Número total de amostras a serem gravadas
 

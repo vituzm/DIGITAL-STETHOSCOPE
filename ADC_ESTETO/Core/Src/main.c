@@ -128,14 +128,10 @@ int main(void)
   while (1)
   {
 	  if(__HAL_TIM_GET_FLAG(&htim10, TIM_FLAG_UPDATE)){
-		  if(conta == 40){
+		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
+		__HAL_TIM_CLEAR_FLAG(&htim10, TIM_FLAG_UPDATE);
+	  }
 
-		  }else{
-			  HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
-		  __HAL_TIM_CLEAR_FLAG(&htim10, TIM_FLAG_UPDATE);
-		  }
-
-	  	  }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -443,12 +439,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	if(conta >= 10){
-
-	}else {
-		HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
-		conta = conta + 1;
-	}
+	HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
 
 }
 /* USER CODE END 4 */
