@@ -53,7 +53,7 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-volatile uint16_t medidas[N_AMOSTRAS];
+volatile int16_t medidas[N_AMOSTRAS];
 uint16_t conta = 0;
 
 uint16_t msg[MSG_SIZE]; // TAMANHO DA MSG
@@ -432,6 +432,9 @@ static void MX_GPIO_Init(void)
 
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+	for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
+		medidas[amostra] = (medidas[amostra] - 1860)*20; // offset de 1.5V
+	}
 	HAL_UART_Transmit_DMA(&huart2,medidas, N_AMOSTRAS*2);
 
 }

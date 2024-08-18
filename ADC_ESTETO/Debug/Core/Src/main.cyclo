@@ -6,6 +6,6 @@
 ../Core/Src/main.c:336:13:MX_USART2_UART_Init	2
 ../Core/Src/main.c:367:13:MX_DMA_Init	1
 ../Core/Src/main.c:389:13:MX_GPIO_Init	1
-../Core/Src/main.c:434:6:HAL_ADC_ConvCpltCallback	1
-../Core/Src/main.c:440:6:HAL_UART_TxCpltCallback	1
-../Core/Src/main.c:451:6:Error_Handler	1
+../Core/Src/main.c:434:6:HAL_ADC_ConvCpltCallback	2
+../Core/Src/main.c:443:6:HAL_UART_TxCpltCallback	1
+../Core/Src/main.c:454:6:Error_Handler	1
