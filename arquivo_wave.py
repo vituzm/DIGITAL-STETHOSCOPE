@@ -12,8 +12,8 @@ BAUD_RATE = 921600    # Configuração da taxa de transmissão da serial
 CHUNK = 2             # Tamanho do buffer agora é 2 bytes por vez (16 bits = 2 bytes)
 FORMAT = 16           # Usando 16 bits por amostra (não precisa ser mudado, só é informativo)
 CHANNELS = 1          # Canal mono
-SAMPLE_RATE = 19940   # Taxa de amostragem em Hz
-RECORD_SECONDS = 10    # Tempo de gravação
+SAMPLE_RATE =  19940   # Taxa de amostragem em Hz
+RECORD_SECONDS = 2    # Tempo de gravação
 WAVE_NAME = "C:\\Users\\Vitor\\Downloads\\AudioEstetoscópio.wav"  # Nome do arquivo de saída
 
 # Número total de amostras a serem gravadas
@@ -23,7 +23,7 @@ TOTALSAMPLES = SAMPLE_RATE * RECORD_SECONDS
 waveform = wave.open(WAVE_NAME, 'wb')
 waveform.setnchannels(CHANNELS)
 waveform.setsampwidth(2)  # Tamanho do sample em bytes (16 bits = 2 bytes)
-waveform.setframerate(SAMPLE_RATE)
+waveform.setframerate(39800)
 
 try:
     # Abrir a porta serial com timeout

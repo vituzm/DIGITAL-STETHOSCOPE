@@ -2,7 +2,9 @@
 ADC1.Channel-0\#ChannelRegularConversion=ADC_CHANNEL_0
 ADC1.DMAContinuousRequests=ENABLE
 ADC1.ExternalTrigConv=ADC_EXTERNALTRIGCONV_T3_TRGO
-ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,NbrOfConversionFlag,master,DMAContinuousRequests,ExternalTrigConv,NbrOfConversion
+ADC1.ExternalTrigConvEdge=ADC_EXTERNALTRIGCONVEDGE_RISING
+ADC1.IPParameters=Rank-0\#ChannelRegularConversion,Channel-0\#ChannelRegularConversion,SamplingTime-0\#ChannelRegularConversion,NbrOfConversionFlag,master,DMAContinuousRequests,ExternalTrigConv,NbrOfConversion,ExternalTrigConvEdge,InjNumberOfConversion
+ADC1.InjNumberOfConversion=0
 ADC1.NbrOfConversion=1
 ADC1.NbrOfConversionFlag=1
 ADC1.Rank-0\#ChannelRegularConversion=1
