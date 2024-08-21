@@ -32,9 +32,10 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define N_AMOSTRAS 1024 // Amostras DMA buffer
+#define N_AMOSTRAS 32 // Amostras DMA buffer
 #define MSG_SIZE 200
-
+#define GANHO 20
+#define Voffset 1860 // offset de 1.5V
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -53,9 +54,10 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-volatile int16_t medidas[N_AMOSTRAS];
+int16_t medidas[2][N_AMOSTRAS];
 uint16_t conta = 0;
-
+uint16_t entra = 0;
+uint16_t sai = 0;
 uint16_t msg[MSG_SIZE]; // TAMANHO DA MSG
 /* USER CODE END PV */
 
@@ -118,8 +120,7 @@ int main(void)
   __HAL_TIM_CLEAR_FLAG(&htim10, TIM_FLAG_UPDATE);
 
   //Começa a enviar as medidas para a memoria no caso 64
-  HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
-
+  HAL_ADC_Start_DMA(&hadc1, medidas[entra], N_AMOSTRAS);
 
   /* USER CODE END 2 */
 
@@ -127,11 +128,6 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-	  if(__HAL_TIM_GET_FLAG(&htim10, TIM_FLAG_UPDATE)){
-		HAL_GPIO_TogglePin(GPIOC, GPIO_PIN_0);
-		__HAL_TIM_CLEAR_FLAG(&htim10, TIM_FLAG_UPDATE);
-	  }
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -283,7 +279,7 @@ static void MX_TIM3_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_TOGGLE;
-  sConfigOC.Pulse = 10;
+  sConfigOC.Pulse = 0;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_OC_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
@@ -432,18 +428,19 @@ static void MX_GPIO_Init(void)
 
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
-	for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
-		medidas[amostra] = (medidas[amostra] - 1860)*20; // offset de 1.5V
-	}
-	HAL_UART_Transmit_DMA(&huart2,medidas, N_AMOSTRAS*2);
-
+	//for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
+	//	medidas[entra][amostra] = (medidas[entra][amostra] - Voffset)*GANHO; // offset de 1.5V
+	//}
+	HAL_UART_Transmit_DMA(&huart2,(char *)medidas[sai], N_AMOSTRAS*2);
+	if(++entra>1) entra=0;
+	if(++sai>1)   sai=0;
 }
 
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-	HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
-
+	//HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
+	HAL_ADC_Start_DMA(&hadc1, medidas[entra], N_AMOSTRAS);
 }
 /* USER CODE END 4 */
 
