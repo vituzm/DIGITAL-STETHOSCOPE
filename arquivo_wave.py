@@ -17,6 +17,7 @@ CHANNELS = 1          # Canal mono
 SAMPLE_RATE = 15000   # Taxa de amostragem em Hz
 RECORD_SECONDS = 20   # Tempo de gravação
 input_wave_name  = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2.wav"  # Nome do arquivo de saída
+output_wave_name = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2 FILTRADO.wav"
 
 """
 # Número total de amostras a serem gravadas
@@ -50,68 +51,18 @@ print(f"Arquivo {input_wave_name} criado com sucesso.")
 # Inicializar a instância do filtro
 S = dsp.arm_biquad_cascade_df2T_instance_f32()
 
-# Coeficientes do Numerador (b) e Denominador (a)
-NUMERADOR = [
-    [0.09984020717417, 0, 0],
-    [1, 0, -1],
-    [0.09984020717417, 0, 0],
-    [1, 0, -1],
-    [0.09705588985272, 0, 0],
-    [1, 0, -1],
-    [0.09705588985272, 0, 0],
-    [1, 0, -1],
-    [0.09486224171169, 0, 0],
-    [1, 0, -1],
-    [0.09486224171169, 0, 0],
-    [1, 0, -1],
-    [0.0933586107854, 0, 0],
-    [1, 0, -1],
-    [0.0933586107854, 0, 0],
-    [1, 0, -1],
-    [0.09259624200386, 0, 0],
-    [1, 0, -1],
-    [0.09259624200386, 0, 0],
-    [1, 0, -1],
-    [1, 0, 0]
-]
-
-DENOMINADOR = [
-    [1, 0, 0],
-    [1, -1.898254411361, 0.9405508494265],
-    [1, 0, 0],
-    [1, -1.998105787452, 0.9981453321343],
-    [1, 0, 0],
-    [1, -1.797510332218, 0.83676024162],
-    [1, 0, 0],
-    [1, -1.994481714277, 0.9945219846887],
-    [1, 0, 0],
-    [1, -1.991145688869, 0.9911873270674],
-    [1, 0, 0],
-    [1, -1.720697906556, 0.7569619126399],
-    [1, 0, 0],
-    [1, -1.988438107666, 0.9884813513232],
-    [1, 0, 0],
-    [1, -1.669526287086, 0.7033457954234],
-    [1, 0, 0],
-    [1, -1.986861912185, 0.9869062955672],
-    [1, 0, 0],
-    [1, -1.644113607758, 0.6765287005334],
-    [1, 0, 0]
-]
-
-# Construir pCoeffs combinando os coeficientes b e a
-pCoeffs = []
-
-for i in range(0, len(NUMERADOR), 2):
-    # Coeficientes da primeira etapa
-    if i + 1 < len(DENOMINADOR):
-        b1 = NUMERADOR[i]
-        a1 = DENOMINADOR[i + 1]
-        # Adiciona os coeficientes ao array na ordem especificada
-        pCoeffs.extend(b1 + a1[1:])  # Inclui a1 sem o primeiro elemento (1)
-
-# Convertendo para numpy array de tipo float32
-pCoeffs = np.array(pCoeffs, dtype=np.float32)
+pCoeffs = np.array([
+    0.09984020717417, 0, 0, -1.898254411361, 0.9405508494265,  # Primeiro estágio
+    0.09984020717417, 0, 0, -1.998105787452, 0.9981453321343,  # Segundo estágio
+    0.09705588985272, 0, 0, -1.797510332218, 0.83676024162,    # Terceiro estágio
+    0.09705588985272, 0, 0, -1.994481714277, 0.9945219846887,  # Quarto estágio
+    0.09486224171169, 0, 0, -1.991145688869, 0.9911873270674,  # Quinto estágio
+    0.09486224171169, 0, 0, -1.720697906556, 0.7569619126399,  # Sexto estágio
+    0.0933586107854,  0, 0, -1.988438107666, 0.9884813513232,  # Sétimo estágio
+    0.0933586107854,  0, 0, -1.669526287086, 0.7033457954234,  # Oitavo estágio
+    0.09259624200386, 0, 0, -1.986861912185, 0.9869062955672,  # Nono estágio
+    0.09259624200386, 0, 0, -1.644113607758, 0.6765287005334   # Décimo estágio
+], dtype=np.float32)
 
 # Número de estágios biquad
 numStages = 10
@@ -120,8 +71,6 @@ numStages = 10
 state = np.zeros(2 * numStages, dtype=np.float32)
 
 dsp.arm_biquad_cascade_df2T_init_f32(S, numStages, pCoeffs, state)
-
-output_wave_name = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2 FILTRADO.wav"
 
 # Ler o arquivo WAV original
 with wave.open(input_wave_name, 'rb') as wave_in:
