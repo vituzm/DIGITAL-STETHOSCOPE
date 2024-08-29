@@ -7,6 +7,7 @@ import wave
 import serial
 import numpy as np
 import cmsisdsp as dsp
+import matplotlib.pyplot as plt
 
 # Configurações da serial
 SERIAL_PORT = 'COM3'  # Porta serial
@@ -78,17 +79,25 @@ with wave.open(input_wave_name, 'rb') as wave_in:
     sample_width = wave_in.getsampwidth()
     framerate = wave_in.getframerate()
     num_frames = wave_in.getnframes()
-    print(num_frames)
-
+    
     audio_data = wave_in.readframes(num_frames)
     audio_samples = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
-
+    
+    print(num_frames)
+    
     # Aplicar o filtro IIR
     filtered_samples = dsp.arm_biquad_cascade_df2T_f32(S, audio_samples)
+    plt.figure()
+    plt.plot(audio_samples[1:500000])
+    plt.show() 
+    
+    # Normalizar o sinal filtrado para o intervalo de int16
+    filtered_samples = np.clip(filtered_samples, -32768, 32767)
 
     # Converter de volta para int16
     filtered_samples_int16 = filtered_samples.astype(np.int16)
-
+    
+    
 # Salvar o áudio filtrado em um novo arquivo WAV
 with wave.open(output_wave_name, 'wb') as wave_out:
     wave_out.setnchannels(channels)
