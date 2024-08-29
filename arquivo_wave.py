@@ -6,19 +6,19 @@ tempo desejado
 import wave
 import serial
 import numpy as np
-from cmsisdsp import arm_biquad_cascade_df2T_f32, arm_biquad_cascade_df2T_init_f32
-
+import cmsisdsp as dsp
 
 # Configurações da serial
-SERIAL_PORT = 'COM7'  # Porta serial
+SERIAL_PORT = 'COM3'  # Porta serial
 BAUD_RATE = 460800    # Configuração da taxa de transmissão da serial
 CHUNK = 2             # Tamanho do buffer agora é 2 bytes por vez (16 bits = 2 bytes)
 FORMAT = 16           # Usando 16 bits por amostra (não precisa ser mudado, só é informativo)
 CHANNELS = 1          # Canal mono
 SAMPLE_RATE = 15000   # Taxa de amostragem em Hz
 RECORD_SECONDS = 20   # Tempo de gravação
-input_wave_name  = "G:\\TCC\\Audios gravados\\Gravações P4 tricúspide\\10segundos S1S2.wav"  # Nome do arquivo de saída
+input_wave_name  = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2.wav"  # Nome do arquivo de saída
 
+"""
 # Número total de amostras a serem gravadas
 
 TOTALSAMPLES = SAMPLE_RATE * RECORD_SECONDS
@@ -44,46 +44,98 @@ finally:
     port.close()
     waveform.close()
 
-
 print(f"Arquivo {input_wave_name} criado com sucesso.")
+"""
+
+# Inicializar a instância do filtro
+S = dsp.arm_biquad_cascade_df2T_instance_f32()
+
+# Coeficientes do Numerador (b) e Denominador (a)
+NUMERADOR = [
+    [0.09984020717417, 0, 0],
+    [1, 0, -1],
+    [0.09984020717417, 0, 0],
+    [1, 0, -1],
+    [0.09705588985272, 0, 0],
+    [1, 0, -1],
+    [0.09705588985272, 0, 0],
+    [1, 0, -1],
+    [0.09486224171169, 0, 0],
+    [1, 0, -1],
+    [0.09486224171169, 0, 0],
+    [1, 0, -1],
+    [0.0933586107854, 0, 0],
+    [1, 0, -1],
+    [0.0933586107854, 0, 0],
+    [1, 0, -1],
+    [0.09259624200386, 0, 0],
+    [1, 0, -1],
+    [0.09259624200386, 0, 0],
+    [1, 0, -1],
+    [1, 0, 0]
+]
+
+DENOMINADOR = [
+    [1, 0, 0],
+    [1, -1.898254411361, 0.9405508494265],
+    [1, 0, 0],
+    [1, -1.998105787452, 0.9981453321343],
+    [1, 0, 0],
+    [1, -1.797510332218, 0.83676024162],
+    [1, 0, 0],
+    [1, -1.994481714277, 0.9945219846887],
+    [1, 0, 0],
+    [1, -1.991145688869, 0.9911873270674],
+    [1, 0, 0],
+    [1, -1.720697906556, 0.7569619126399],
+    [1, 0, 0],
+    [1, -1.988438107666, 0.9884813513232],
+    [1, 0, 0],
+    [1, -1.669526287086, 0.7033457954234],
+    [1, 0, 0],
+    [1, -1.986861912185, 0.9869062955672],
+    [1, 0, 0],
+    [1, -1.644113607758, 0.6765287005334],
+    [1, 0, 0]
+]
+
+# Construir pCoeffs combinando os coeficientes b e a
+pCoeffs = []
+
+for i in range(0, len(NUMERADOR), 2):
+    # Coeficientes da primeira etapa
+    if i + 1 < len(DENOMINADOR):
+        b1 = NUMERADOR[i]
+        a1 = DENOMINADOR[i + 1]
+        # Adiciona os coeficientes ao array na ordem especificada
+        pCoeffs.extend(b1 + a1[1:])  # Inclui a1 sem o primeiro elemento (1)
+
+# Convertendo para numpy array de tipo float32
+pCoeffs = np.array(pCoeffs, dtype=np.float32)
 
 # Número de estágios biquad
 numStages = 10
 
 # Estado do filtro (inicializado com zeros)
-state = np.zeros(4 * numStages, dtype=np.float32)
+state = np.zeros(2 * numStages, dtype=np.float32)
 
-# Estrutura do filtro
-class arm_biquad_casd_df2T_instance_f32:
-    def __init__(self, numStages, pCoeffs, pState):
-        self.numStages = numStages
-        self.pCoeffs = pCoeffs
-        self.pState = pState
+dsp.arm_biquad_cascade_df2T_init_f32(S, numStages, pCoeffs, state)
 
+output_wave_name = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2 FILTRADO.wav"
 
-# Inicializar a instância do filtro
-S = arm_biquad_casd_df2T_instance_f32(numStages, pCoeffs, state)
-
-# Inicializar o filtro biquad
-arm_biquad_cascade_df2T_init_f32(S, numStages, pCoeffs, state)
-
-# Caminho para o arquivo WAV filtrado
-output_wave_name = "G:\\TCC\\Audios gravados\\Gravações P4 tricúspide\\10segundos S1S2 FILTRADO.wav"  # Nome do arquivo de saída
-
-
-# Abrir o arquivo WAV original para leitura
+# Ler o arquivo WAV original
 with wave.open(input_wave_name, 'rb') as wave_in:
     channels = wave_in.getnchannels()
     sample_width = wave_in.getsampwidth()
     framerate = wave_in.getframerate()
     num_frames = wave_in.getnframes()
+    print(num_frames)
 
-    # Ler todos os dados de áudio
     audio_data = wave_in.readframes(num_frames)
     audio_samples = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
 
     # Aplicar o filtro IIR
-    filtered_samples = arm_biquad_cascade_df2T_f32(S, audio_samples)
+    filtered_samples = dsp.arm_biquad_cascade_df2T_f32(S, audio_samples)
 
     # Converter de volta para int16
     filtered_samples_int16 = filtered_samples.astype(np.int16)
