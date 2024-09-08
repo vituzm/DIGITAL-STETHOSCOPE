@@ -3,11 +3,12 @@ Programa para a criação do arquivo wave de acordo com o
 tempo desejado
 """
 
-import wave
+import wave 
 import serial
 import numpy as np
 import cmsisdsp as dsp
 import matplotlib.pyplot as plt
+from scipy import signal 
 
 # Configurações da serial
 SERIAL_PORT = 'COM3'  # Porta serial
@@ -16,11 +17,11 @@ CHUNK = 2             # Tamanho do buffer agora é 2 bytes por vez (16 bits = 2 
 FORMAT = 16           # Usando 16 bits por amostra (não precisa ser mudado, só é informativo)
 CHANNELS = 1          # Canal mono
 SAMPLE_RATE = 15000   # Taxa de amostragem em Hz
-RECORD_SECONDS = 20   # Tempo de gravação
-input_wave_name  = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2.wav"  # Nome do arquivo de saída
-output_wave_name = "C:\\Users\\Vitor\\Downloads\\10segundos S1S2 FILTRADO.wav"
+RECORD_SECONDS = 5   # Tempo de gravação
+input_wave_name  = "C:\\Users\\Vitor\\Downloads\\20segundos S1S2.wav"  # Nome do arquivo de saída
+output_wave_name = "C:\\Users\\Vitor\\Downloads\\20segundos S1S2 FILTRADO.wav"
 
-"""
+
 # Número total de amostras a serem gravadas
 
 TOTALSAMPLES = SAMPLE_RATE * RECORD_SECONDS
@@ -47,62 +48,100 @@ finally:
     waveform.close()
 
 print(f"Arquivo {input_wave_name} criado com sucesso.")
-"""
 
-# Inicializar a instância do filtro
-S = dsp.arm_biquad_cascade_df2T_instance_f32()
+# Frequências para o filtro passa-faixa
+w = [15, 250]
 
-pCoeffs = np.array([
-    0.09984020717417, 0, 0, -1.898254411361, 0.9405508494265,  # Primeiro estágio
-    0.09984020717417, 0, 0, -1.998105787452, 0.9981453321343,  # Segundo estágio
-    0.09705588985272, 0, 0, -1.797510332218, 0.83676024162,    # Terceiro estágio
-    0.09705588985272, 0, 0, -1.994481714277, 0.9945219846887,  # Quarto estágio
-    0.09486224171169, 0, 0, -1.991145688869, 0.9911873270674,  # Quinto estágio
-    0.09486224171169, 0, 0, -1.720697906556, 0.7569619126399,  # Sexto estágio
-    0.0933586107854,  0, 0, -1.988438107666, 0.9884813513232,  # Sétimo estágio
-    0.0933586107854,  0, 0, -1.669526287086, 0.7033457954234,  # Oitavo estágio
-    0.09259624200386, 0, 0, -1.986861912185, 0.9869062955672,  # Nono estágio
-    0.09259624200386, 0, 0, -1.644113607758, 0.6765287005334   # Décimo estágio
-], dtype=np.float32)
+# Secoes byquad do filtro Butterworth passa-faixa
+secoes = 10
 
-# Número de estágios biquad
-numStages = 10
+# Atenuação na banda de rejeição (em dB)
+attenuation_stopband = 150 
 
-# Estado do filtro (inicializado com zeros)
-state = np.zeros(2 * numStages, dtype=np.float32)
+# Projeto do filtro passa-faixa
+sos = signal.iirfilter(
+    N = secoes, 
+    Wn = w, 
+    btype ='band', 
+    ftype ='cheby2', 
+    rs = attenuation_stopband,
+    fs = SAMPLE_RATE, 
+    output='sos')
 
-dsp.arm_biquad_cascade_df2T_init_f32(S, numStages, pCoeffs, state)
+# Coeficientes b1, b2 ... do filtro passa-faixa
+NUMERADOR = np.array([
+    [0.3189842366757, 0, 0],
+    [1, -1.999961380843, 1],
+    [0.3189842366757, 0, 0],
+    [1, -1.988800736477, 1],
+    [0.28928576234, 0, 0],
+    [1, -1.999967906269, 1],
+    [0.28928576234, 0, 0],
+    [1, -1.986531302625, 1],
+    [0.2324974610043, 0, 0],
+    [1, -1.999979060849, 1],
+    [0.2324974610043, 0, 0],
+    [1, -1.97939324409, 1],
+    [0.1517644269888, 0, 0],
+    [1, -1.999991041153, 1],
+    [0.1517644269888, 0, 0],
+    [1, -1.952166055553, 1],
+    [0.05497448138232, 0, 0],
+    [1, -1.99999891036, 1],
+    [0.05497448138232, 0, 0],
+    [1, -1.637980853257, 1],
+    [1, 0, 0]
+])
+
+# Coeficientes a1, a2 ... do filtro passa-faixa
+DENOMINADOR = np.array([
+    [1, 0, 0],
+    [1, -1.990727776199, 0.9928297437502],
+    [1, 0, 0],
+    [1, -1.997550834792, 0.9977560877147],
+    [1, 0, 0],
+    [1, -1.977271268252, 0.9792374469158],
+    [1, 0, 0],
+    [1, -1.992852566386, 0.9930699927101],
+    [1, 0, 0],
+    [1, -1.966276616914, 0.9679801879131],
+    [1, 0, 0],
+    [1, -1.987449619096, 0.9876984761149],
+    [1, 0, 0],
+    [1, -1.960203939386, 0.9615195445052],
+    [1, 0, 0],
+    [1, -1.980602269125, 0.9809223855052],
+    [1, 0, 0],
+    [1, -1.971401883989, 0.9718926701358],
+    [1, 0, 0],
+    [1, -1.962134367413, 0.9629892655753],
+    [1, 0, 0]
+])
+# Montar o array SOS com os coeficientes 
+sos = np.hstack([NUMERADOR, DENOMINADOR])
 
 # Ler o arquivo WAV original
 with wave.open(input_wave_name, 'rb') as wave_in:
-    channels = wave_in.getnchannels()
-    sample_width = wave_in.getsampwidth()
-    framerate = wave_in.getframerate()
+    channels = 1
+    sample_width = 2
+    framerate = SAMPLE_RATE
     num_frames = wave_in.getnframes()
-    
-    audio_data = wave_in.readframes(num_frames)
-    audio_samples = np.frombuffer(audio_data, dtype=np.int16).astype(np.float32)
-    
-    print(num_frames)
-    
-    # Aplicar o filtro IIR
-    filtered_samples = dsp.arm_biquad_cascade_df2T_f32(S, audio_samples)
-    plt.figure()
-    plt.plot(audio_samples[1:500000])
-    plt.show() 
-    
-    # Normalizar o sinal filtrado para o intervalo de int16
-    filtered_samples = np.clip(filtered_samples, -32768, 32767)
 
-    # Converter de volta para int16
-    filtered_samples_int16 = filtered_samples.astype(np.int16)
+    audio_data = wave_in.readframes(num_frames)
+    audio_int = (np.frombuffer(audio_data, dtype=np.int16))*17
+
+    filtered_samples = signal.sosfilt(sos, audio_int)
+
+    # Normalizar os dados filtrados para 16 bits
+    filtered_samples = np.clip(filtered_samples, -32768, 32767)  # Limitar valores para 16-bit PCM
+    filtered_samples = filtered_samples.astype(np.int16)
     
-    
+
 # Salvar o áudio filtrado em um novo arquivo WAV
 with wave.open(output_wave_name, 'wb') as wave_out:
     wave_out.setnchannels(channels)
     wave_out.setsampwidth(sample_width)
     wave_out.setframerate(framerate)
-    wave_out.writeframes(filtered_samples_int16.tobytes())
+    wave_out.writeframes(filtered_samples.tobytes())
+    print(f"Arquivo filtrado salvo como {output_wave_name}")
 
-print(f"Arquivo filtrado salvo como {output_wave_name}")
