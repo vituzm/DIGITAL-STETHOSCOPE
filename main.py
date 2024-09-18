@@ -4,7 +4,7 @@ import crate_wave
 import filter_design
 from tkinter import *
 
-SAMPLE_RATE = 15000   # Taxa de amostragem em Hz
+SAMPLE_RATE = 8000   # Taxa de amostragem em Hz
 RECORD_SECONDS = 15   # Tempo de gravação  
 
 TOTALSAMPLES = SAMPLE_RATE * RECORD_SECONDS # Número total de amostras a serem gravadas
