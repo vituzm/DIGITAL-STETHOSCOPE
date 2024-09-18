@@ -298,7 +298,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 55;
+  htim3.Init.Prescaler = 104;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 99;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -357,9 +357,9 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 55;
+  htim4.Init.Prescaler = 104;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 999;
+  htim4.Init.Period = 99;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
@@ -506,9 +506,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
 	HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, medidas[entra], N_AMOSTRAS, DAC_ALIGN_12B_R);
 
-	//for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
-	//	medidas[entra][amostra] = (medidas[entra][amostra] - Voffset)*GANHO; // offset de 1.5V
-	//}
+	for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
+		medidas[entra][amostra] = (medidas[entra][amostra] - Voffset); // offset de 1.5V
+	}
 	HAL_UART_Transmit_DMA(&huart2, medidas[entra], N_AMOSTRAS*2);
 	if(++entra>1) entra=0;
 	HAL_ADC_Start_DMA(&hadc1, medidas[entra], N_AMOSTRAS);
