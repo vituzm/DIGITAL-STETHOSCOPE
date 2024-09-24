@@ -23,19 +23,26 @@
 /* USER CODE BEGIN Includes */
 #include "string.h"
 #include "stdio.h"
+#include "math.h"
+#include "arm_math.h"
+#include "arm_const_structs.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define N_AMOSTRAS 16 // Amostras DMA buffer
+#define N_AMOSTRAS 128 // Amostras DMA buffer
+#define BLOCK_SIZE 32
+#define NUM_BLOCKS (N_AMOSTRAS / BLOCK_SIZE)
+
 #define MSG_SIZE 200
-#define GANHO 50
 #define Voffset 1650 // offset de 1.5V
+#define IIR_ORDEM 40
+#define IIR_SECOESBIQUAD IIR_ORDEM/2
+#define GANHO_AUDIO 10
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -44,7 +51,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
+ADC_HandleTypeDef  hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 DAC_HandleTypeDef hdac;
@@ -58,9 +65,67 @@ DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 int16_t medidas[2][N_AMOSTRAS];
-uint16_t conta = 0;
 uint16_t entra = 0;
 uint16_t msg[MSG_SIZE]; // TAMANHO DA MSG
+
+
+float32_t entrada[N_AMOSTRAS];
+float32_t saida[N_AMOSTRAS];
+
+float32_t *InputValuesf32_ptr = &entrada[0];  // declare Input pointer
+float32_t *OutputValuesf32_ptr = &saida[0]; // declare Output pointer
+
+float32_t estado_biquad_coracao[IIR_ORDEM] = {0};
+float32_t estado_biquad_pulmao[IIR_ORDEM] = {0};
+
+uint32_t blockSize = N_AMOSTRAS;
+
+float32_t coefs_biquad_coracao_negados[5*IIR_SECOESBIQUAD] = {
+		0.0000896, 0.0000295, 0.0000896, 1.4115166, -0.5000832,
+		1.0000000, -1.4527240, 1.0000000, 1.4872182, -0.5670105,
+		1.0000000, -1.7746251, 1.0000000, 1.5937766, -0.6612419,
+		1.0000000, -1.8738691, 1.0000000, 1.6928417, -0.7489193,
+		1.0000000, -1.9159065, 1.0000000, 1.7712556, -0.8184704,
+		1.0000000, -1.9371273, 1.0000000, 1.8300037, -0.8708311,
+		1.0000000, -1.9489429, 1.0000000, 1.8738883, -0.9103158,
+		1.0000000, -1.9557887, 1.0000000, 1.9075393, -0.9410966,
+		1.0000000, -1.9596257, 1.0000000, 1.9345836, -0.9664814,
+		1.0000000, -1.9999990, 1.0000000, 1.9869423, -0.9869863,
+		1.0000000, -1.9999915, 1.0000000, 1.9874347, -0.9874859,
+		1.0000000, -1.9999775, 1.0000000, 1.9883505, -0.9884151,
+		1.0000000, -1.9613614, 1.0000000, 1.9577943, -0.9890631,
+		1.0000000, -1.9999586, 1.0000000, 1.9895812, -0.9896634,
+		1.0000000, -1.9999373, 1.0000000, 1.9910155, -0.9911174,
+		1.0000000, -1.9999157, 1.0000000, 1.9925634, -0.9926850,
+		1.0000000, -1.9998959, 1.0000000, 1.9941635, -0.9943030,
+		1.0000000, -1.9998795, 1.0000000, 1.9957808, -0.9959349,
+		1.0000000, -1.9998680, 1.0000000, 1.9974000, -0.9975645,
+		1.0000000, -1.9998620, 1.0000000, 1.9990188, -0.9991887
+};
+
+float32_t coefs_biquad_pulmao_negados[5*IIR_SECOESBIQUAD] = {
+		0.0002651, 0.0004559, 0.0002651, 0.6280552, -0.1057106,
+		1.0000000, 0.4142551, 1.0000000, 0.7258248, -0.1876524,
+		1.0000000, -0.5278944, 1.0000000, 0.8827046, -0.3178539,
+		1.0000000, -1.0214509, 1.0000000, 1.0532026, -0.4578093,
+		1.0000000, -1.2834991, 1.0000000, 1.2086649, -0.5845147,
+		1.0000000, -1.4315777, 1.0000000, 1.3386852, -0.6906936,
+		1.0000000, -1.5193918, 1.0000000, 1.4433853, -0.7776870,
+		1.0000000, -1.5722156, 1.0000000, 1.5269730, -0.8499909,
+		1.0000000, -1.9999509, 1.0000000, 1.9065508, -0.9088077,
+		1.0000000, -1.6024941, 1.0000000, 1.5945053, -0.9127319,
+		1.0000000, -1.9995719, 1.0000000, 1.9115112, -0.9140944,
+		1.0000000, -1.9988809, 1.0000000, 1.9199249, -0.9230921,
+		1.0000000, -1.9979882, 1.0000000, 1.9299917, -0.9338998,
+		1.0000000, -1.9970148, 1.0000000, 1.9404584, -0.9451646,
+		1.0000000, -1.9960684, 1.0000000, 1.9506952, -0.9561748,
+		1.0000000, -1.9952320, 1.0000000, 1.9604934, -0.9666602,
+		1.0000000, -1.6163566, 1.0000000, 1.6507569, -0.9709687,
+		1.0000000, -1.9945637, 1.0000000, 1.9698790, -0.9766030,
+		1.0000000, -1.9941007, 1.0000000, 1.9789966, -0.9861186,
+		1.0000000, -1.9938644, 1.0000000, 1.9880468, -0.9953895
+};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -78,9 +143,9 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-// --------- Funções prototipos ----------------- //
+arm_biquad_cascade_df2T_instance_f32 SC;
+arm_biquad_cascade_df2T_instance_f32 SP;
 
-// --------- Funções prototipos ----------------- //
 /* USER CODE END 0 */
 
 /**
@@ -91,7 +156,8 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	arm_biquad_cascade_df2T_init_f32(&SC, IIR_SECOESBIQUAD, &coefs_biquad_coracao_negados[0], &estado_biquad_coracao[0]);
+	arm_biquad_cascade_df2T_init_f32(&SP, IIR_SECOESBIQUAD, &coefs_biquad_pulmao_negados[0], &estado_biquad_pulmao[0]);
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -122,9 +188,8 @@ int main(void)
   HAL_TIM_OC_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_OC_Start(&htim4, TIM_CHANNEL_1);
 
-
   //Começa a enviar as medidas para a memoria no caso 16
-  HAL_ADC_Start_DMA(&hadc1, medidas[entra], N_AMOSTRAS);
+  HAL_ADC_Start_DMA(&hadc1, &medidas[entra][0], N_AMOSTRAS);
 
   /* USER CODE END 2 */
 
@@ -504,22 +569,30 @@ static void MX_GPIO_Init(void)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
 
-	HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, medidas[entra], N_AMOSTRAS, DAC_ALIGN_12B_R);
-
 	for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
-		medidas[entra][amostra] = (medidas[entra][amostra] - Voffset); // offset de 1.5V
+		entrada[amostra] = (float32_t)medidas[entra][amostra]; // offset de 1.5V
 	}
-	HAL_UART_Transmit_DMA(&huart2, medidas[entra], N_AMOSTRAS*2);
+
+	for (int k = 0; k < NUM_BLOCKS; k++)
+	{
+		arm_biquad_cascade_df2T_f32 (&SP, InputValuesf32_ptr + (k*BLOCK_SIZE), OutputValuesf32_ptr + (k*BLOCK_SIZE), BLOCK_SIZE);    // perform filtering
+	}
+
+	int16_t amostras_de_saida[N_AMOSTRAS];
+	for (int k = 0; k < N_AMOSTRAS; k++)
+	{
+		amostras_de_saida[k] = saida[k]*GANHO_AUDIO;
+	}
+
+	//HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (int16_t)saida, N_AMOSTRAS, DAC_ALIGN_12B_R);
+	HAL_UART_Transmit_DMA(&huart2, &amostras_de_saida[0], N_AMOSTRAS*2);
+
 	if(++entra>1) entra=0;
 	HAL_ADC_Start_DMA(&hadc1, medidas[entra], N_AMOSTRAS);
-}
-
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-{
-	//HAL_ADC_Start_DMA(&hadc1, medidas, N_AMOSTRAS);
 
 }
+
+
 /* USER CODE END 4 */
 
 /**
