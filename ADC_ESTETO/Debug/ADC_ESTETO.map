@@ -4644,7 +4644,7 @@ LOAD E:/ST/STM32CubeIDE_1.16.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_line    0x00011ed5      0x79b G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_f32.o)
  .debug_line    0x00012670      0x289 G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_init_f32.o)
 
-.debug_str      0x00000000    0xe15e0
+.debug_str      0x00000000    0xe15c0
  .debug_str     0x00000000    0xddd7c ./Core/Src/main.o
                               0xde295 (size before relaxing)
  .debug_str     0x000ddd7c      0x132 ./Core/Src/stm32f4xx_hal_msp.o
@@ -4653,32 +4653,32 @@ LOAD E:/ST/STM32CubeIDE_1.16.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
                               0xd7571 (size before relaxing)
  .debug_str     0x000ddff8       0xdb ./Core/Src/system_stm32f4xx.o
                               0xd706c (size before relaxing)
- .debug_str     0x000de0d3       0x78 ./Core/Startup/startup_stm32f446retx.o
- .debug_str     0x000de14b      0x5fa ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
+ .debug_str     0x000de0d3       0x58 ./Core/Startup/startup_stm32f446retx.o
+ .debug_str     0x000de12b      0x5fa ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
                               0xd7c31 (size before relaxing)
- .debug_str     0x000de745      0x296 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.o
+ .debug_str     0x000de725      0x296 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.o
                               0xd7634 (size before relaxing)
- .debug_str     0x000de9db      0x333 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
+ .debug_str     0x000de9bb      0x333 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
                               0xd7956 (size before relaxing)
- .debug_str     0x000ded0e      0x205 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac.o
+ .debug_str     0x000decee      0x205 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dac.o
                               0xd74c9 (size before relaxing)
- .debug_str     0x000def13      0x2cf ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
+ .debug_str     0x000deef3      0x2cf ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
                               0xd7461 (size before relaxing)
- .debug_str     0x000df1e2      0x121 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
+ .debug_str     0x000df1c2      0x121 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
                               0xd71e7 (size before relaxing)
- .debug_str     0x000df303      0x233 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
+ .debug_str     0x000df2e3      0x233 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
                               0xd74a5 (size before relaxing)
- .debug_str     0x000df536      0x31c ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.o
+ .debug_str     0x000df516      0x31c ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc_ex.o
                               0xd74d8 (size before relaxing)
- .debug_str     0x000df852      0xd47 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
+ .debug_str     0x000df832      0xd47 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
                               0xd83d1 (size before relaxing)
- .debug_str     0x000e0599      0x493 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
+ .debug_str     0x000e0579      0x493 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
                               0xd7bdd (size before relaxing)
- .debug_str     0x000e0a2c      0x5e6 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
+ .debug_str     0x000e0a0c      0x5e6 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
                               0xd7a5c (size before relaxing)
- .debug_str     0x000e1012      0x57a G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_f32.o)
+ .debug_str     0x000e0ff2      0x57a G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_f32.o)
                                 0x6ea (size before relaxing)
- .debug_str     0x000e158c       0x54 G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_init_f32.o)
+ .debug_str     0x000e156c       0x54 G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_init_f32.o)
                                 0x6e1 (size before relaxing)
 
 .comment        0x00000000       0xb8
@@ -4726,9 +4726,9 @@ LOAD E:/ST/STM32CubeIDE_1.16.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ext
  .debug_frame   0x00003dcc       0x34 E:/ST/STM32CubeIDE_1.16.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.12.3.rel1.win32_1.0.200.202406191623/tools/bin/../lib/gcc/arm-none-eabi/12.3.1/thumb/v7e-m+fp/hard\libgcc.a(_udivmoddi4.o)
 
 .debug_line_str
-                0x00000000       0x5c
+                0x00000000       0x3c
  .debug_line_str
-                0x00000000       0x5c ./Core/Startup/startup_stm32f446retx.o
+                0x00000000       0x3c ./Core/Startup/startup_stm32f446retx.o
 
 .debug_loc      0x00000000      0xd34
  .debug_loc     0x00000000      0xc59 G:\ADC_ESTETO\Drivers\CMSIS\Lib\GCC\libarm_cortexM4lf_math.a(arm_biquad_cascade_df2t_f32.o)
