@@ -4,14 +4,10 @@ tempo desejado
 """
 import serial
 import wave 
-import numpy as np
-import cmsisdsp as dsp
-import matplotlib.pyplot as plt
-from scipy import signal 
 
 # Configurações da serial
 SERIAL_PORT = 'COM3'  # Porta serial
-BAUD_RATE = 460800    # Configuração da taxa de transmissão da serial
+BAUD_RATE = 230400    # Configuração da taxa de transmissão da serial
 CHUNK = 2             # Tamanho do buffer agora é 2 bytes por vez (16 bits = 2 bytes)
 FORMAT = 16           # Usando 16 bits por amostra (não precisa ser mudado, só é informativo)
 CHANNELS = 1          # Canal mono
@@ -39,7 +35,6 @@ try:
     print("___Captura e gravação finalizadas___")
 
 finally:
-
     port.close()
     waveform.close()
 
