@@ -2,16 +2,16 @@
 /**
   ******************************************************************************
   * @file           : main.c
-  * @brief          : Main program body
   ******************************************************************************
   * @attention
   *
-  * Copyright (c) 2024 STMicroelectronics.
-  * All rights reserved.
+  * Softare feito para trabalho de conclusão do curso técnico em eletrônica na
+  * fundação liberato.
   *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
+  * @brief
+  * O código cosiste em aquisicionar amostras do ADC, processar usando filtros
+  * digitais IIR Chebyhev II na forma de biquads transpostos usando a
+  * biblioteca DSP da CMSIS e por fim enviar o som filtrado de volta pelo DAC
   *
   ******************************************************************************
   */
@@ -34,15 +34,15 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define N_AMOSTRAS 128 // Amostras DMA buffer
-#define BLOCK_SIZE 32
-#define NUM_BLOCKS (N_AMOSTRAS / BLOCK_SIZE)
+#define N_AMOSTRAS 128 						 // Amostras DMA buffer
+#define BLOCK_SIZE 32						 // Tamanho de cada bloco de amostras
+#define NUM_BLOCKS (N_AMOSTRAS / BLOCK_SIZE) // Numero de blocos de 32 amostras
 
-#define MSG_SIZE 200
-#define Voffset 1650 // offset de 1.5V
-#define IIR_ORDEM 40
-#define IIR_SECOESBIQUAD IIR_ORDEM/2
-#define GANHO_AUDIO 15
+#define MSG_SIZE 200 // Tamanho da mensagem da serial
+#define Voffset 1165 // offset de 1.5V
+#define IIR_ORDEM 40 // Ordem do filtro
+#define IIR_SECOESBIQUAD IIR_ORDEM/2 // Numero de seções biquads
+#define GANHO_AUDIO 5				 // Ganho na amplitude das amostras
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -51,7 +51,7 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef  hadc1;
+ADC_HandleTypeDef hadc1;
 DMA_HandleTypeDef hdma_adc1;
 
 DAC_HandleTypeDef hdac;
@@ -64,22 +64,23 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-int16_t medidas[2][N_AMOSTRAS];
-uint16_t entra = 0;
-uint16_t msg[MSG_SIZE]; // TAMANHO DA MSG
+int16_t medidas[2][N_AMOSTRAS];					// Valores do ADC em int16_t
+uint16_t entra = 0;								// Linha do da matriz de amostras
 
+float32_t entrada[N_AMOSTRAS];					// Valores não filtrados em float32
+float32_t saida[N_AMOSTRAS];					// Valores filtrados em float32
 
-float32_t entrada[N_AMOSTRAS];
-float32_t saida[N_AMOSTRAS];
+float32_t *InputValuesf32_ptr = &entrada[0]; 	// declare Input pointer
+float32_t *OutputValuesf32_ptr = &saida[0]; 	// declare Output pointer
 
-float32_t *InputValuesf32_ptr = &entrada[0];  // declare Input pointer
-float32_t *OutputValuesf32_ptr = &saida[0]; // declare Output pointer
+int16_t amostras_de_saida[N_AMOSTRAS]; 			// Valores filtrados em int16
+int16_t amostras_de_saida_py[N_AMOSTRAS];
+
+uint8_t soltou = 0; // Variável para debounce
+uint8_t estado = 0; // Variável para debounce
 
 float32_t estado_biquad_coracao[IIR_ORDEM] = {0};
 float32_t estado_biquad_pulmao[IIR_ORDEM] = {0};
-
-uint32_t blockSize = N_AMOSTRAS;
-
 
 float32_t coefs_biquad_coracao_negados[5*IIR_SECOESBIQUAD] = {
 		0.00008961896804606912195646090113, 0.00002950709423280477720669297270, 0.00008961896804606910840393374507, 1.41151657231764571243104455788853, -0.50008321107119668713636428947211,
@@ -125,7 +126,7 @@ float32_t coefs_biquad_pulmao_negados[5*IIR_SECOESBIQUAD] = {
 		1.00000000000000000000000000000000, -1.99529117178488846207073947880417, 0.99999999999999988897769753748435, 1.95883936173909445344065716199111, -0.96497998633401582679880448267795,
 		1.00000000000000000000000000000000, -1.99459875844276868228632793034194, 1.00000000000000022204460492503131, 1.96847696383129378006060505867936, -0.97522002983841216128269024920883,
 		1.00000000000000000000000000000000, -1.99411456477494386518856117618270, 1.00000000000000022204460492503131, 1.97804028273214482780417711182963, -0.98521654709997008581012778449804,
-		1.00000000000000000000000000000000, -1.99386602788905920036199859168846, 1.00000000000000000000000000000000, 1.98765837629074870740453206963139, -0.99507565999924563193701487762155
+		1.00000000000000000000000000000000, -1.99386602788905920036199859168846, 1.00000000000000000000000000000000, 1.98765837629074870740453206963139, -0.99507565999924563193701487762155,
 };
 
 /* USER CODE END PV */
@@ -145,9 +146,9 @@ static void MX_TIM4_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+// Instâncias de cada filtro
 arm_biquad_cascade_df2T_instance_f32 SC;
 arm_biquad_cascade_df2T_instance_f32 SP;
-
 /* USER CODE END 0 */
 
 /**
@@ -158,6 +159,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
+	// inicializando os filtros
 	arm_biquad_cascade_df2T_init_f32(&SC, IIR_SECOESBIQUAD, &coefs_biquad_coracao_negados[0], &estado_biquad_coracao[0]);
 	arm_biquad_cascade_df2T_init_f32(&SP, IIR_SECOESBIQUAD, &coefs_biquad_pulmao_negados[0], &estado_biquad_pulmao[0]);
   /* USER CODE END 1 */
@@ -197,10 +199,17 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
+   while (1)
   {
     /* USER CODE END WHILE */
+	   if(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == 1 && soltou == 0){
+	   		soltou = 1;
+	   		estado = ~estado;
+	   	}
 
+	   	if(HAL_GPIO_ReadPin(B1_GPIO_Port, B1_Pin) == 0){
+	   	   soltou = 0;
+	   	}
     /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
@@ -218,7 +227,7 @@ void SystemClock_Config(void)
   /** Configure the main internal regulator output voltage
   */
   __HAL_RCC_PWR_CLK_ENABLE();
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
   /** Initializes the RCC Oscillators according to the specified parameters
   * in the RCC_OscInitTypeDef structure.
@@ -228,9 +237,9 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-  RCC_OscInitStruct.PLL.PLLM = 16;
-  RCC_OscInitStruct.PLL.PLLN = 336;
-  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV4;
+  RCC_OscInitStruct.PLL.PLLM = 8;
+  RCC_OscInitStruct.PLL.PLLN = 168;
+  RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
   RCC_OscInitStruct.PLL.PLLQ = 2;
   RCC_OscInitStruct.PLL.PLLR = 2;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
@@ -244,10 +253,10 @@ void SystemClock_Config(void)
                               |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
   RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
   RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV4;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV2;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_5) != HAL_OK)
   {
     Error_Handler();
   }
@@ -479,7 +488,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 460800;
+  huart2.Init.BaudRate = 230400;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -537,7 +546,7 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0|SAIDA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
@@ -548,12 +557,18 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PC0 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0;
+  /*Configure GPIO pins : PC0 SAIDA_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_0|SAIDA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ENTRADA_Pin */
+  GPIO_InitStruct.Pin = ENTRADA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(ENTRADA_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : LD2_Pin */
   GPIO_InitStruct.Pin = LD2_Pin;
@@ -566,32 +581,80 @@ static void MX_GPIO_Init(void)
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
-/* USER CODE BEGIN 4 */
+int clamp_value(int16_t value ) {
+	if(estado == 0) value = (value*3) + 1400;
+	else value = (value*1.4) + 1400;
+    if (value < 0.00) return 0;
+    if (value > 4095) return 4095;
+    return value;
+}
 
+/**
+  * Processamento da metade dos dados aquisicionados pelo ADC
+  * Checagem do botão | 0 para pulmão | 1 para coração
+  */
+void HAL_ADC_ConvHalfCpltCallback(ADC_HandleTypeDef* hadc){
 
+	for(int amostra = 0; amostra < (N_AMOSTRAS/2); amostra++)
+	{
+		entrada[amostra] = (float32_t)medidas[entra][amostra]-Voffset;
+
+	}
+
+	// LOOP DE FILTRAGEM DOS SONS
+	for (int k = 0; k < (NUM_BLOCKS/2); k++)
+	{
+		if(estado == 0){
+			arm_biquad_cascade_df2T_f32(&SP, InputValuesf32_ptr + (k*BLOCK_SIZE), OutputValuesf32_ptr + (k*BLOCK_SIZE), BLOCK_SIZE);
+		}
+		else
+			arm_biquad_cascade_df2T_f32(&SC, InputValuesf32_ptr + (k*BLOCK_SIZE), OutputValuesf32_ptr + (k*BLOCK_SIZE), BLOCK_SIZE);
+
+	}
+
+	for (int k = 0; k < (N_AMOSTRAS/2); k++)
+	{
+		int16_t var = clamp_value((int16_t)saida[k]);
+		amostras_de_saida_py[k] = ((int16_t)saida[k])*GANHO_AUDIO; 	// Passando de float para int | para ser enviado pela serial
+		amostras_de_saida[k] = var;		// Passando de float para int | para ser enviado pelo DAC
+	}
+}
+
+/**
+  * Processamento da segunda metade dos dados aquisicionados pelo ADC
+  * Início do próximo ADC e transmissão de dados
+  */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc){
+	int16_t ent = entra; // Var para manter o processamento das amostras
 
-	for(int amostra = 0; amostra < N_AMOSTRAS; amostra++){
-		entrada[amostra] = (float32_t)medidas[entra][amostra]; // offset de 1.5V
-	}
+	if(++entra>1) entra=0; // Começo do próximo aquisionamento
+	HAL_ADC_Start_DMA(&hadc1, &medidas[entra][0], N_AMOSTRAS);
+	HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, &amostras_de_saida[0], N_AMOSTRAS, DAC_ALIGN_12B_R);
 
-	for (int k = 0; k < NUM_BLOCKS; k++)
+	//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, SET);
+	for(int amostra = (N_AMOSTRAS/2); amostra < N_AMOSTRAS; amostra++)
 	{
-		arm_biquad_cascade_df2T_f32 (&SP, InputValuesf32_ptr + (k*BLOCK_SIZE), OutputValuesf32_ptr + (k*BLOCK_SIZE), BLOCK_SIZE);    // perform filtering
+		entrada[amostra] = (float32_t)medidas[ent][amostra]-Voffset;
 	}
 
-	int16_t amostras_de_saida[N_AMOSTRAS];
-	for (int k = 0; k < N_AMOSTRAS; k++)
+	for (int k = (NUM_BLOCKS/2); k < NUM_BLOCKS; k++)
 	{
-		amostras_de_saida[k] = saida[k]*GANHO_AUDIO;
+		if(estado == 0){
+			arm_biquad_cascade_df2T_f32(&SP, InputValuesf32_ptr + (k*BLOCK_SIZE), OutputValuesf32_ptr + (k*BLOCK_SIZE), BLOCK_SIZE);
+		}
+		else
+			arm_biquad_cascade_df2T_f32(&SC, InputValuesf32_ptr + (k*BLOCK_SIZE), OutputValuesf32_ptr + (k*BLOCK_SIZE), BLOCK_SIZE);
 	}
 
-	//HAL_DAC_Start_DMA(&hdac, DAC_CHANNEL_1, (int16_t)saida, N_AMOSTRAS, DAC_ALIGN_12B_R);
-	HAL_UART_Transmit_DMA(&huart2, &amostras_de_saida[0], N_AMOSTRAS*2);
 
-	if(++entra>1) entra=0;
-	HAL_ADC_Start_DMA(&hadc1, medidas[entra], N_AMOSTRAS);
-
+	for (int k = (N_AMOSTRAS/2); k < N_AMOSTRAS; k++)
+	{
+		int16_t var = clamp_value((int16_t)saida[k]);
+		amostras_de_saida_py[k] = ((int16_t)saida[k])*GANHO_AUDIO;	// Passando de float para int | para ser enviado pela serial
+		amostras_de_saida[k] = var;		// Passando de float para int | para ser enviado pelo DAC
+	}
+	HAL_UART_Transmit_DMA(&huart2, &amostras_de_saida_py[0], N_AMOSTRAS*2);
+	//HAL_GPIO_WritePin(GPIOC, GPIO_PIN_0, RESET);
 }
 
 
